@@ -1,4 +1,8 @@
+import { Emitter } from './common/emitter.js';
+
 window.P5 = p5;
+
+const emitterOrigins = [{x: 426, y: 290}, {x: 472, y: 287}, {x: 529, y: 289}, {x: 556, y: 297}, {x: 476, y: 326}, {x: 644, y: 429}, {x: 654, y: 464}, {x: 654, y: 490}]
 
 new p5((p5) => {
   let heartUv;
@@ -7,6 +11,11 @@ new p5((p5) => {
   let gridSize = 20;
   let step = 30;
   let noiseOffset = 0;
+  const emitters = emitterOrigins.map(({ x, y }, index) => {
+    const ranges = [4, 5, 6, 7].includes(index) ? [[-Math.PI * 0.25, Math.PI * 0.25]] : [[-Math.PI * 0.25, -Math.PI * 0.75]];
+    return new Emitter(p5, { position: new P5.Vector(x, y), speed: 1, ranges })
+  })
+  const gravity = p5.createVector(0, 0.01);
   
   p5.setup = () => {
     canvas = p5.createCanvas(pageSize, pageSize);
@@ -19,40 +28,20 @@ new p5((p5) => {
   p5.draw = () => {
     step+=10;
     p5.background(255);
-     //preview image
-     //p5.image(heartUv, 0, 0, width, height);
+    var scale = 0.5;
+    p5.imageMode(p5.CENTER);
+    p5.image(heartUv, 0.5 * p5.width, 0.5 * p5.height, scale * p5.width, scale * heartUv.height * p5.width / heartUv.width);
+    
     p5.stroke(0);
     p5.noFill();
     p5.strokeWeight(1);
     
-    const points = [];
-    
-    for (let y = 0; y <= p5.width; y += gridSize) {
-      for (let x = 0; x <= p5.height; x += gridSize) {
-        
-        let point1 = heartUv.get(x, y);
-        
-        if((point1[0] + point1[1] + point1[2]) > 15) {
-          points.push({ x, y });
-          points.push({ x: x-point1[1]/5, y: y-point1[1]/5 });
-          points.push({ x: x+point1[1]/5, y: y+point1[1]/5 });
-        }
-      }
-    }
-    
-    for (let i = 0; i < points.length; i ++) {
-      if (i === 0) {
-        continue;
-      }
-      const anchor1 = points[i - 1];
-      const anchor2 = points[i];
-      
-      const [r, g, b] = heartUv.get(anchor1.x, anchor1.y)
-      const value = (r + g + b) / 3
-          const vector1 = P5.Vector.fromAngle(p5.radians(value) + p5.noise(anchor1.x + noiseOffset, anchor1.y + noiseOffset), 200)
-          p5.stroke((i+step)/20 % 200);
-      p5.bezier(anchor1.x, anchor1.y, anchor1.x + vector1.x, anchor1.y + vector1.y, anchor2.x - vector1.x, anchor2.y - vector1.y, anchor2.x, anchor2.y);
-    }
+    emitters.forEach((emitter) => {
+      // emitter.debug();
+      emitter.applyForce(gravity);
+      emitter.run();
+    });
+   
     noiseOffset += 0.01;
   }
 }, document.querySelector('main'));
